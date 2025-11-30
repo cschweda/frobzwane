@@ -1,0 +1,30 @@
+# Compiled game files
+*.z5
+*.z8
+*.z3
+*.zblorb
+*.gblorb
+
+# Backup files
+*.bak
+*~
+*.swp
+*.swo
+
+# Editor files
+.DS_Store
+.vscode/
+.idea/
+*.sublime-*
+
+# Temporary files
+*.tmp
+*.log
+
+# Keep library files - they're part of the project
+!lib/
+!lib/**/*
+
+# Keep docs directory
+!docs/
+!docs/**/*

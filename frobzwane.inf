@@ -1,0 +1,516 @@
+! ============================================
+! FROBSWANE: A Post-Underground Excavation
+! Inform 6 Source File
+! ============================================
+!
+! This file demonstrates Inform 6 game development with extensive comments
+! for newcomers to the language. Inform 6 is a programming language for
+! creating interactive fiction (text adventure) games.
+!
+! ============================================
+! SECTION 1: GAME METADATA
+! ============================================
+
+! Constants define game information that appears in the story file header
+! "Story" is the game title shown when the game starts
+Constant Story "FROBSWANE";
+
+! "Headline" is a subtitle or tagline shown below the title
+! The ^ symbols create line breaks in the output
+Constant Headline "^A Post-Underground Excavation^";
+
+! ============================================
+! SECTION 2: LIBRARY INCLUDES
+! ============================================
+
+! Inform 6 uses library files that provide standard parser functionality
+! These are included from the lib/inform6lib/ directory
+! 
+! "parser" provides the command parser (understanding player input)
+! "verblib" provides standard verb definitions (take, drop, look, etc.)
+Include "parser";
+Include "verblib";
+
+! ============================================
+! SECTION 3: REQUIRED LIBRARY STUBS
+! ============================================
+!
+! The Inform 6 library expects certain routines to exist. These are "stubs"
+! - empty routines that can be overridden later for custom behavior.
+! For now, we provide minimal implementations that do nothing.
+!
+! These routines are called by the library at various points:
+! - NewRoom: Called when entering a new room (can customize behavior)
+! - LookRoutine: Called when player types "look" (can customize)
+! - AfterSave/AfterRestore: Called after save/restore operations
+! - PrintRank: Called when displaying score rank
+! - ObjectDoesNotFit: Called when trying to put object in container that's too small
+! - DarkToDark: Called when trying to move in darkness
+! - GamePreRoutine/GamePostRoutine: Called before/after each turn
+! - Amusing: Called for special responses (like typing XYZZY)
+! - DeathMessage: Called when player dies
+! - Epilogue: Called at game end
+! - ParseNoun/ParseNumber: Called during parsing (can customize noun recognition)
+! - AfterLife: Called after death (for resurrection, etc.)
+! - TimePasses: Called each turn (for time-based events)
+! - PrintVerb: Called when printing verb in messages
+! - InScope: Determines if object is visible/accessible
+! - ParserError: Called on parser errors (can customize error messages)
+! - ChooseObjects: Called when parser needs to disambiguate objects
+! - BeforeParsing: Called before parsing player input
+! - UnknownVerb: Called when player uses unknown verb
+! - AfterPrompt: Called after displaying the prompt (>)
+
+[ NewRoom; return false; ];
+[ LookRoutine; return false; ];
+[ AfterSave; ];
+[ AfterRestore; ];
+[ PrintRank; ];
+[ ObjectDoesNotFit; return false; ];
+[ DarkToDark; ];
+[ GamePreRoutine; ];
+[ GamePostRoutine; ];
+[ Amusing; ];
+[ DeathMessage; ];
+[ Epilogue; ];
+[ ParseNoun; return false; ];
+[ ParseNumber; return false; ];
+[ AfterLife; ];
+[ TimePasses; ];
+[ PrintVerb; ];
+[ InScope; return true; ];
+[ ParserError; ];
+[ ChooseObjects; return false; ];
+[ BeforeParsing; ];
+[ UnknownVerb; ];
+[ AfterPrompt; ];
+
+! ============================================
+! SECTION 4: COMPILER CONSTANTS
+! ============================================
+
+! ZCODE_VERSION tells the compiler which Z-machine version to target
+! Version 5 supports up to 256 KB and is widely compatible
+! Version 8 supports up to 512 KB but requires newer interpreters
+Constant ZCODE_VERSION = 5;
+
+! TOTAL_SCORE defines the maximum possible score
+! Note: MAX_SCORE is already defined in verblib.h, so we use TOTAL_SCORE
+! This will be used when implementing the scoring system
+Constant TOTAL_SCORE = 350;
+
+! ============================================
+! SECTION 5: GLOBAL STATE VARIABLES
+! ============================================
+!
+! Global variables track the game's state - what has happened, what puzzles
+! are solved, what items are in what state, etc.
+!
+! These are used throughout the game to:
+! - Change room descriptions based on state
+! - Enable/disable exits based on puzzle completion
+! - Track puzzle progress
+! - Store game statistics
+
+! Puzzle state variables - track whether puzzles are solved
+Global front_hall_cleaned = false;      ! Has the front hall been cleaned with the dryer?
+Global reservoir_drained = false;       ! Has the reservoir been drained?
+Global throne_rotated = false;         ! Has the throne been rotated?
+
+! Resource tracking
+Global lamp_turns = 800;               ! Remaining battery life for the lamp (in turns)
+Global decoder_ring_charged = false;   ! Is the decoder ring charged with espresso?
+Global paste_uses = 0;                 ! How many times has the cereal paste been used?
+
+! Scoring
+Global score = 0;                      ! Current player score
+
+! F-R-O-B puzzle state - tracks which letters are showing on the four panels
+Global panel1_letter = 'A';
+Global panel2_letter = 'B';
+Global panel3_letter = 'C';
+Global panel4_letter = 'D';
+
+! Valve puzzle state - tracks which valves have been turned
+Global valve_hot_turned = false;
+Global valve_cold_turned = false;
+Global valve_existential_turned = false;
+
+! CV submission state - tracks which CV components have been submitted
+Global cv_card_submitted = false;
+Global cv_gown_submitted = false;
+Global cv_grant_submitted = false;
+Global cv_waiver_submitted = false;
+
+! Finale state
+Global house_collapsing = false;       ! Is the house collapsing?
+
+! ============================================
+! SECTION 6: INITIALIZATION
+! ============================================
+!
+! The Initialise routine runs once when the game starts.
+! It sets up the initial game state - where the player starts, initial
+! values, etc.
+
+[ Initialise;
+    ! "location" is a special global variable that holds the current room
+    ! This sets the starting location to Prairie_Overlook
+    location = Prairie_Overlook;
+];
+
+! ============================================
+! SECTION 7: ROOM DEFINITIONS
+! ============================================
+!
+! Rooms are defined using the "Object" keyword. In Inform 6, everything is
+! an object - rooms, items, NPCs, etc.
+!
+! Room syntax:
+!   Object RoomName "Display Name"
+!       with description "Room description text",
+!       direction_to OtherRoom,
+!       has light;  (or has dark, or neither for conditional lighting)
+!
+! Properties:
+!   - description: Text shown when player enters or types "look"
+!   - n_to, s_to, e_to, w_to: North, south, east, west exits
+!   - u_to, d_to: Up, down exits
+!   - in_to, out_to: Enter, exit (for containers, buildings, etc.)
+!   - has light: Room is always lit (player can see)
+!   - has dark: Room is always dark (needs light source)
+!   - No light property: Room uses default lighting rules
+
+! ============================================
+! ACT I: SURFACE ROOMS
+! ============================================
+
+! Global variables for puzzle gates (must be defined before rooms that use them)
+Global grating_opened = false;         ! Has the grating been opened?
+Global rope_attached = false;           ! Has a rope been attached for crossing?
+
+! ROOM 1: Starting location
+! This is where the player begins the game
+Object Prairie_Overlook "Prairie Overlook"
+    with description
+        "A sodium-orange prairie flickers like a dying CRT monitor. Heat-shimmer rises in waves, tasting of copper and old shareware disks. Your rental hover-mule squats half-inflated nearby, its cheap photo-chromatic visor clipped over the air valve.",
+    ! Exits: only east exit to the parking lot
+    e_to Tarpit_Parking_Lot,
+    ! This room has natural light (has light means always lit)
+    has light;
+
+! ROOM 2: Parking lot area
+Object Tarpit_Parking_Lot "Tarpit Memorial Parking Lot"
+    with description
+        "Cracked asphalt bubbles with bitumen and cancelled shareware. A faded GUE HERITAGE TOUR placard is half-submerged in tar.",
+    ! Bidirectional exits: can go west back to prairie, east to kiosk
+    w_to Prairie_Overlook,
+    e_to Gift_Kiosk,
+    has light;
+
+! ROOM 3: Gift shop where hand-dryer is found
+Object Gift_Kiosk "Gift Kiosk"
+    with description
+        "A rotating rack of foam crowns and LED key-chains stands in this abandoned tourist trap. A wall-mounted FrobozzCo Breeze-Matic hand-dryer is still warm.",
+    w_to Tarpit_Parking_Lot,
+    s_to Mailbox_Approach,
+    has light;
+
+! ROOM 4: Approach to the White House
+Object Mailbox_Approach "Mailbox Approach"
+    with description
+        "The White House front door is buried to the letterbox in loam. Only the mailbox remains accessible, stuffed with fossil circulars.",
+    n_to Gift_Kiosk,
+    ! "in_to" means entering the building (going inside)
+    in_to Front_Hall,
+    has light;
+
+! ROOM 5: Front Hall with state-dependent description
+! This room demonstrates conditional descriptions based on game state
+Object Front_Hall "Front Hall"
+    with description
+        [;
+            ! This is a routine (function) that returns different text
+            ! based on the front_hall_cleaned variable
+            if (front_hall_cleaned) {
+                ! If cleaned, show the clean description
+                "The hall is now blindingly, oppressively white. Everything gleams with antiseptic perfection.";
+            } else {
+                ! If not cleaned, show the dirty description
+                "The front hall is a disaster of dust, cobwebs, and organic matter. Everything leans toward depressing beige.";
+            }
+        ],
+    out_to Mailbox_Approach,
+    e_to Living_Room_Alcove,
+    w_to Kitchen,
+    ! Conditional exit: can only go down if hall is cleaned
+    d_to [;
+        ! This is a routine that controls whether the exit works
+        if (front_hall_cleaned) {
+            ! Return the destination room if condition is met
+            return Cellar_Landing;
+        } else {
+            ! Print a message and return 0 (blocked) if condition not met
+            "The cellar stairs are blocked by debris.";
+        }
+    ],
+    has light;
+
+! ROOM 6: Kitchen with icebox
+Object Kitchen "Kitchen"
+    with description
+        "The kitchen is surprisingly intact with decades-old appliances. An unplugged icebox stands in the corner.",
+    e_to Front_Hall,
+    has light;
+
+! ROOM 7: Living room with journal
+Object Living_Room_Alcove "Living Room Alcove"
+    with description
+        "A reading nook with dusty armchair and side table. A yellowed academic journal lies open to a furious editorial.",
+    w_to Front_Hall,
+    has light;
+
+! ROOM 8: Cellar landing where lamp is found
+Object Cellar_Landing "Cellar Landing"
+    with description
+        "Stone steps descend to a landing where air grows cooler. A small ledge holds an LED Frob-Lux lamp. A heavy iron grating blocks further descent.",
+    u_to Front_Hall,
+    e_to Rusted_Grating,
+    has light;
+
+! ROOM 9: Grating that blocks underground access
+! This demonstrates a conditional exit based on puzzle completion
+Object Rusted_Grating "Rusted Grating"
+    with description
+        "The grating continues here. A lever on the far side is jammed by a debt-collection letter wedged into the mechanism.",
+    w_to Cellar_Landing,
+    ! Conditional exit: can only go east if grating is opened
+    e_to [;
+        if (grating_opened) {
+            ! If opened, allow passage to underground
+            return Former_Maze_Demolition_Site;
+        } else {
+            ! If not opened, block with message
+            "The grating is still closed.";
+        }
+    ],
+    has light;
+
+! ============================================
+! ACT II: UNDERGROUND ROOMS
+! ============================================
+
+! ROOM 10: Former maze (demolished)
+! Note: No "has light" means it's dark - player needs the lamp
+Object Former_Maze_Demolition_Site "Former Maze Demolition Site"
+    with description
+        "A cavernous hollow where corridors once twisted. Rubble forms neat berms. A brass sign reads: This would have been the maze room, but everybody hates mazes, so we demolished the maze. You're welcome. --FrobozzCo Recreation Dept.",
+    w_to Rusted_Grating,
+    e_to Mail_Sorting_Vestibule;
+    ! No "has light" = dark room (needs lamp)
+
+! ROOM 11: Mail sorting area
+Object Mail_Sorting_Vestibule "Mail-Sorting Vestibule"
+    with description
+        "Collapsed pigeonholes line the walls like honeycomb cells. Bronze routing wheels lie scattered. Torn postal codes flutter like confetti.",
+    w_to Former_Maze_Demolition_Site,
+    e_to Western_Arch_Dam;
+    ! Dark room
+
+! ROOM 12: Dam arch - requires rope to cross
+Object Western_Arch_Dam "Western Arch of Dam #3"
+    with description
+        "You stand on the western arch of Flood Control Dam #3--the only masonry left standing. The reservoir beyond is a cracked mud skillet. Graffiti reads: GUE Theory #7 -- Empire still exists, just moved to cloud storage.",
+    w_to Mail_Sorting_Vestibule,
+    ! Conditional exit: requires rope to cross safely
+    e_to [;
+        if (rope_attached) {
+            return Dam_Cafe;
+        } else {
+            "You need a rope to cross safely. Without it, you'd fall to your death.";
+        }
+    ];
+    ! Dark room
+
+! ROOM 13: Dam cafe (has lighting)
+Object Dam_Cafe "Dam Gift-Shop / Cafe"
+    with description
+        "A combination gift shop and espresso cafe. Every surface bears the FROBSWANE(TM) logo. An espresso machine hisses. Behind the counter stands a green-skinned figure in a three-piece suit.",
+    w_to Western_Arch_Dam,
+    s_to Valve_Platform,
+    has light;  ! This room has its own lighting
+
+! ROOM 14: Valve platform
+Object Valve_Platform "Valve Platform"
+    with description
+        "A metal platform extends to a massive valve wheel frozen solid with white calcium deposits. A pipe extends down into the old reservoir.",
+    n_to Dam_Cafe;
+    ! Dark room
+
+! ============================================
+! SECTION 8: OBJECT DEFINITIONS
+! ============================================
+!
+! Objects are items the player can interact with. They use similar syntax
+! to rooms but have different properties:
+!
+!   Object -> "object name"
+!       with name 'word1' 'word2' 'word3',  ! Parser vocabulary
+!       description "Description text",
+!       initial "in RoomName",              ! Starting location
+!       has property1 property2;            ! Object properties
+!
+! Properties:
+!   - name: Words the parser recognizes (player can type these)
+!   - description: Text shown when examining the object
+!   - initial: Where the object starts (room, container, or "on player")
+!   - has scenery: Object can't be taken (part of the scenery)
+!   - has container: Object can hold other objects
+!   - has openable: Object can be opened/closed
+!   - has open: Object starts open
+!   - has light: Object provides light
+!   - capacity N: Container can hold N objects
+!
+! The "->" syntax means "create a new object" (vs reusing an existing class)
+
+! Scenery objects - can't be taken, just part of the environment
+Object -> "rental hover-mule"
+    ! Vocabulary: player can refer to it as "hover-mule", "mule", "rental", or "hover"
+    with name 'hover-mule' 'mule' 'rental' 'hover',
+    description "A rental hover-mule in questionable condition, half-inflated and sagging to one side.",
+    initial "in Prairie_Overlook",  ! Starts in the starting room
+    has scenery;  ! Can't be taken - it's scenery
+
+Object -> "photo-chromatic visor"
+    with name 'visor' 'photo-chromatic' 'visor',
+    description "A cheap photo-chromatic visor clipped over the hover-mule's air valve.",
+    initial "in Prairie_Overlook",
+    has scenery;  ! Also scenery
+
+! Hand-dryer - demonstrates custom behavior with "before" routine
+Object -> "FrobozzCo Breeze-Matic hand-dryer"
+    with name 'hand-dryer' 'dryer' 'breeze-matic' 'blower',
+    description "A wall-mounted FrobozzCo Breeze-Matic hand-dryer. It's still warm to the touch.",
+    initial "in Gift_Kiosk",
+    ! "before" routine intercepts actions before they happen
+    ! This allows custom behavior for specific actions
+    before [;
+        ! "Take" is the action when player types "take dryer"
+        Take: "It's bolted to the wall. You'll need to yank it free.";
+        ! Note: We'll need a custom YANK verb to actually remove it
+    ];
+
+! Mailbox - a container that can hold objects
+Object -> "mailbox"
+    with name 'mailbox',
+    description "A mailbox stuffed with fossil circulars.",
+    initial "in Mailbox_Approach",
+    capacity 10,        ! Can hold up to 10 objects
+    has container open;  ! Is a container and starts open
+
+! Icebox - a container that can be opened/closed
+Object -> "unplugged icebox"
+    with name 'icebox' 'ice-box' 'refrigerator' 'fridge',
+    description "An unplugged icebox standing in the corner.",
+    initial "in Kitchen",
+    capacity 5,
+    has container openable;  ! Can be opened/closed (not open by default)
+
+! Ice-cube key - starts inside the icebox
+Object -> "ice-cube key"
+    with name 'key' 'ice-cube' 'ice-cube-key',
+    description "A key frozen in an ice cube.",
+    initial "in unplugged icebox";  ! Starts inside the icebox container
+
+! Journal - a readable object
+Object -> "GUE-journal paper"
+    with name 'journal' 'paper' 'gue-journal' 'academic' 'editorial',
+    description "A yellowed academic journal open to a furious editorial about the Great Underground Empire being dismissed as marketing fiction.",
+    initial "in Living_Room_Alcove";
+
+! Lamp - a light source with dynamic description
+Object -> "LED Frob-Lux lamp"
+    with name 'lamp' 'led' 'light' 'flashlight' 'frob-lux',
+    ! Dynamic description that shows remaining battery
+    description [;
+        ! This routine prints the description with the current battery level
+        "An LED Frob-Lux lamp with ", lamp_turns, " turns of battery life remaining.";
+    ],
+    initial "in Cellar_Landing",
+    has light;  ! Provides light (allows player to see in dark rooms)
+
+! Debt collection letter - blocks the lever
+Object -> debt_collection_letter "debt-collection letter"
+    ! Note: We give it a variable name (debt_collection_letter) so we can
+    ! reference it in code (like checking if it's in a room)
+    with name 'letter' 'debt-collection' 'debt' 'paper',
+    description "A debt-collection letter wadded into the lever mechanism. The compound interest number is 847,293,201.",
+    initial "in Rusted_Grating";
+
+! Lever - demonstrates conditional behavior based on other objects
+Object -> lever "lever"
+    with name 'lever',
+    description "A lever on the far side of the grating, currently jammed by a debt-collection letter.",
+    initial "in Rusted_Grating",
+    before [;
+        ! "Pull" is the action when player types "pull lever"
+        Pull: 
+            ! Check if the letter is still in the room (blocking the lever)
+            if (debt_collection_letter in Rusted_Grating) {
+                "The lever won't move. The paper is blocking it.";
+            } else {
+                ! If letter is removed, allow lever to work
+                grating_opened = true;      ! Set puzzle state
+                score = score + 10;         ! Award points
+                "The grating swings open with a rusty scream.";
+            }
+    ];
+
+! ============================================
+! SECTION 9: CUSTOM ACTION ROUTINES
+! ============================================
+!
+! Custom routines can override or extend standard library behavior.
+! These are called by the library when certain actions occur.
+!
+! Action routine naming: [ActionNameSub obj; ... ]
+! The "Sub" suffix means this is a subroutine for that action.
+! Return true to indicate the action was handled, false to let library handle it.
+
+! UseSub - handles the "use" action (when player types "use object")
+[ UseSub obj;
+    ! Check if the object being used is the hand-dryer
+    if (obj == "FrobozzCo Breeze-Matic hand-dryer") {
+        ! Check if we're in the Front Hall and it hasn't been cleaned yet
+        if (location == Front_Hall && ~front_hall_cleaned) {
+            ! Set the state variable
+            front_hall_cleaned = true;
+            ! Award points
+            score = score + 20;
+            ! Print success message
+            "The dryer blasts away all dust and cobwebs with industrial force. The hall is now blindingly, oppressively white. Everything gleams with antiseptic perfection.";
+            ! Return true to indicate we handled this action
+            return true;
+        }
+    }
+    ! Return false to let the library handle other "use" actions
+    return false;
+];
+
+! ============================================
+! END OF SOURCE FILE
+! ============================================
+!
+! This is a basic Inform 6 game structure. As development continues:
+! - More rooms will be added
+! - More objects will be implemented
+! - Custom verbs (YANK, CRUSH, SPIT ON, etc.) will be added
+! - NPCs will be implemented
+! - Puzzles will be completed
+! - Scoring system will be finished
+!
+! For more information, see:
+! - README.md - Project overview
+! - INFORM6_COMPILATION_GUIDE.md - How to compile
+! - FROBSWANE_Complete_Design.md - Full game design
+! - walkthrough.md - Complete playthrough guide

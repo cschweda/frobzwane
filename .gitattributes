@@ -1,0 +1,16 @@
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Source files
+*.inf text eol=lf
+*.md text eol=lf
+*.sh text eol=lf
+
+# Library files
+*.h text eol=lf
+*.txt text eol=lf
+
+# Binary files
+*.z5 binary
+*.z8 binary
+*.z3 binary
