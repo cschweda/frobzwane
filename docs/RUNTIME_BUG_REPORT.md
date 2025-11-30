@@ -44,10 +44,31 @@ The compiled `frobzwane.z5` file was crashing immediately on startup with frotz,
 - **Target**: Z-machine version 5
 - **Interpreter**: Frotz
 
+## How to Avoid This Issue
+
+1. **Always use `./build.sh`** - It prioritizes stable compiler versions
+2. **Don't update the library** - The bundled 6.12.6 is known to work
+3. **Avoid development versions** - Anything marked "(in development)" may have bugs
+4. **Test immediately after compilation** - Run `./runtest.sh` to catch errors early
+
+## If You Encounter This Error
+
+If you see "tried to read outside memory" errors:
+
+1. Check your compiler version: `inform -v`
+2. If it shows "(in development)", find a stable version
+3. Verify you're using the bundled library: `+lib/inform6lib`
+4. Use `./build.sh` which handles all of this automatically
+
 ## Status
 
 **Current Status**: ✅ RESOLVED - Game compiles and runs successfully  
 **Last Updated**: 2025-11-30  
-**Compiler Version**: Inform 6.42  
-**Library Version**: Inform 6 Library 6.12.6
+**Compiler Version**: Inform 6.42 (stable)  
+**Library Version**: Inform 6 Library 6.12.6 (stable)
+
+## See Also
+
+- [INFORM6_COMPILATION_GUIDE.md](INFORM6_COMPILATION_GUIDE.md) - Full compilation guide
+- [README.md](../README.md) - Project overview with version requirements
 

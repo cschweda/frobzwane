@@ -4,25 +4,65 @@
 
 This guide explains how to compile Inform 6 source files (`.inf`) into Z-machine story files (`.z5`, `.z8`, etc.) for use with interactive fiction interpreters.
 
+## ⚠️ Important: Use Stable Versions
+
+This project requires **stable versions** of the Inform 6 compiler and library:
+
+| Component | Required Version | Notes |
+|-----------|-----------------|-------|
+| **Compiler** | Inform 6.42 (stable) | Development versions cause runtime errors |
+| **Library** | Inform 6 Library 6.12.6 (stable) | Included in `lib/inform6lib/` |
+
+### Why Stable Versions Matter
+
+Development/unstable versions can cause **critical runtime errors**:
+
+```
+[** Programming error: tried to read outside memory using -> **]
+[** Programming error: tried to write to -->123 in the array "line_ttype", which has entries 0 up to 31 **]
+```
+
+These "parser array bounds" errors occur when:
+- Using Inform 6.45 (in development) with library 6.12.7dev
+- The parser tries to access array indices beyond their allocated size
+- Results in immediate game crash on startup
+
+**Solution**: Use stable versions (6.42 compiler + 6.12.6 library).
+
 ## Prerequisites
 
-1. **Inform 6 Compiler**: Installed and available in PATH
-   - Check installation: `inform -v5`
-   - Version used: Inform 6.45 (in development)
+1. **Inform 6 Compiler** (stable version required)
+   - Check installation: `inform -v` (should show 6.42 or similar)
+   - Download stable releases: [GitHub Releases](https://github.com/DavidKinder/Inform6/releases)
+   - **Avoid**: Development versions like "6.45 (in development)"
 
 2. **Inform 6 Library**: Standard library files (`.h` headers)
-   - **For FROBSWANE**: Included in `lib/inform6lib/` (self-contained)
-   - **For other projects**: Can use system location or project-specific
+   - **For FROBSWANE**: Included in `lib/inform6lib/` (version 6.12.6, stable)
+   - **For other projects**: Download from [IF Archive](https://ifarchive.org/indexes/if-archive/infocom/compilers/inform6/library/)
 
 ## Basic Compilation
 
-### Simple Compilation (FROBSWANE)
+### Recommended: Use build.sh
+
+```bash
+./build.sh
+```
+
+The build script automatically:
+- Finds a stable compiler version (prioritizes `inform642` over `inform`)
+- Uses the bundled stable library (6.12.6)
+- Validates the build environment
+- Syncs output to parchment/ if it exists
+
+### Manual Compilation (FROBSWANE)
 
 ```bash
 inform -v5 +lib/inform6lib frobzwane.inf
 ```
 
 This creates `frobzwane.z5` (Z-machine version 5 story file).
+
+**Warning**: Manual compilation uses whatever `inform` is in your PATH. If you have a development version installed, you may encounter runtime errors. Always verify your compiler version first with `inform -v`.
 
 **Note**: This project is self-contained - all library files are in `lib/inform6lib/`.
 

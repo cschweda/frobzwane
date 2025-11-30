@@ -210,19 +210,149 @@ Standard interactive fiction commands:
 
 This project is **completely self-contained** - all necessary library files are included in the `lib/` directory.
 
+### ⚠️ Important: Version Requirements
+
+This project requires specific **stable versions** to avoid runtime errors:
+
+| Component | Required Version | Included |
+|-----------|-----------------|----------|
+| **Compiler** | Inform 6.42 (stable) | No - must install |
+| **Library** | Inform 6 Library 6.12.6 (stable) | ✅ Yes - in `lib/inform6lib/` |
+
+#### Why These Specific Versions?
+
+**Development/unstable versions cause runtime crashes.** During development, we encountered critical "memory access" errors:
+
+```
+[** Programming error: tried to read outside memory using -> **]
+[** Programming error: tried to write to -->123 in the array "line_ttype" **]
+```
+
+These errors occurred with:
+- Inform 6.45 (in development) 
+- Library 6.12.7dev
+
+The parser's internal arrays were being accessed out of bounds, causing immediate crashes on game startup. **Switching to stable versions (6.42 compiler + 6.12.6 library) resolved all issues.**
+
+### Why Use `build.sh`?
+
+**Always use `./build.sh` instead of calling `inform` directly.** The build script:
+
+1. **Finds the correct compiler** - Prioritizes stable versions (like `inform642`) over development versions
+2. **Uses the bundled stable library** - Points to `lib/inform6lib/` (version 6.12.6)
+3. **Validates the build environment** - Checks for required files before compiling
+4. **Syncs to parchment/** - Automatically updates the web version if it exists
+5. **Provides clear error messages** - Helps diagnose installation issues
+
+If you compile manually with `inform -v5 +lib/inform6lib frobzwane.inf`, you might accidentally use an unstable compiler version that causes runtime crashes.
+
 ### Prerequisites
 
-1. **Inform 6 Compiler** - Must be installed and available
-   - Check: `which inform` or `inform -v5`
-   - Download: [Inform 6](http://www.inform-fiction.org/inform6.html)
+1. **Inform 6 Compiler** (stable version required)
+   - Check: `inform -v` (should show 6.42 or similar stable version)
+   - **Avoid**: Development versions like "6.45 (in development)"
+
+2. **Inform 6 Library** (already included)
+   - ✅ Bundled in `lib/inform6lib/` (version 6.12.6)
+   - No download needed
+
+### Installing Inform 6 on Ubuntu (Fresh Install)
+
+If you're starting with a fresh Ubuntu installation, follow these steps to install the **stable** Inform 6 compiler:
+
+#### Step 1: Install Build Tools
+
+```bash
+sudo apt-get update
+sudo apt-get install -y build-essential git curl
+```
+
+#### Step 2: Download and Compile Inform 6.42 (Stable)
+
+```bash
+# Create a directory for Inform
+mkdir -p ~/infocom/Inform6
+cd ~/infocom/Inform6
+
+# Clone the repository
+git clone https://github.com/DavidKinder/Inform6.git .
+
+# Checkout the stable 6.42 release
+git checkout v6.42
+
+# Compile (simple - just compile all .c files)
+gcc -O2 -o inform642 *.c
+
+# Verify it works
+./inform642 -v
+# Should show: Inform 6.42 (10th February 2024)
+```
+
+#### Step 3: Make It Available System-Wide
+
+```bash
+# Option A: Add to PATH (recommended)
+echo 'export PATH="$HOME/infocom/Inform6:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+
+# Option B: Create a symlink
+sudo ln -sf ~/infocom/Inform6/inform642 /usr/local/bin/inform
+
+# Option C: Create an alias
+echo 'alias inform="$HOME/infocom/Inform6/inform642"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+#### Step 4: Install Frotz (Z-machine Interpreter)
+
+```bash
+sudo apt-get install -y frotz
+```
+
+#### Step 5: Verify Installation
+
+```bash
+# Check compiler version
+inform642 -v
+# Should show: Inform 6.42
+
+# Or if you set up alias/PATH:
+inform -v
+```
+
+### Why Not Use the Latest Development Version?
+
+You might be tempted to use the latest code from GitHub's `main` branch, but **don't**:
+
+| Version | Status | Result |
+|---------|--------|--------|
+| **6.42** | ✅ Stable release | Works perfectly |
+| **6.43** | ✅ Stable release | Should work |
+| **6.44** | ✅ Stable release | Should work |
+| **6.45 (in development)** | ❌ Unstable | **Causes runtime crashes** |
+
+The development version (6.45) has bugs in the parser that cause "memory access" errors:
+
+```
+[** Programming error: tried to read outside memory using -> **]
+```
+
+This happens because:
+1. The parser's internal arrays (`line_ttype`, `line_tdata`, `line_token`) have 32 entries
+2. The buggy parser tries to access index 123+ (way out of bounds)
+3. The game crashes immediately on startup, before you can even type a command
+
+**The library bundled with this project (6.12.6) is stable.** The issue was specifically with:
+- Compiler 6.45 (in development)
+- Library 6.12.7dev (development version)
 
 ### Quick Compilation
 
 ```bash
-# Using the build script (recommended)
+# Using the build script (RECOMMENDED - ensures correct versions)
 ./build.sh
 
-# Or manually
+# Manual compilation (use only if you have a stable compiler)
 inform -v5 +lib/inform6lib frobzwane.inf
 ```
 
