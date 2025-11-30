@@ -730,9 +730,6 @@ See **docs/TESTING.md** for complete testing documentation
 - [Interactive Fiction Database](https://ifdb.org/)
 - [Inform 6 Examples](https://www.ifarchive.org/indexes/if-archiveXprogrammingXinformXsourceXexamples.html)
 
-## 📧 Contact
-
-[Add contact information if desired]
 
 ---
 
