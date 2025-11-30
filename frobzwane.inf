@@ -67,22 +67,22 @@ Include "verblib";
 [ AfterRestore; ];
 [ PrintRank; ];
 [ ObjectDoesNotFit; return false; ];
-[ DarkToDark; ];
-[ GamePreRoutine; ];
-[ GamePostRoutine; ];
+[ DarkToDark; return false; ];
+[ GamePreRoutine; return false; ];
+[ GamePostRoutine; return false; ];
 [ Amusing; ];
 [ DeathMessage; ];
 [ Epilogue; ];
-[ ParseNoun; return false; ];
-[ ParseNumber; return false; ];
+[ ParseNoun; return -1; ];
+[ ParseNumber; return 0; ];
 [ AfterLife; ];
 [ TimePasses; ];
-[ PrintVerb; ];
-[ InScope; return true; ];
-[ ParserError; ];
-[ ChooseObjects; return false; ];
-[ BeforeParsing; ];
-[ UnknownVerb; ];
+[ PrintVerb; return false; ];
+[ InScope; return false; ];
+[ ParserError; return false; ];
+[ ChooseObjects; return 0; ];
+[ BeforeParsing; return false; ];
+[ UnknownVerb; return false; ];
 [ AfterPrompt; ];
 
 ! ============================================
@@ -123,7 +123,7 @@ Global decoder_ring_charged = false;   ! Is the decoder ring charged with espres
 Global paste_uses = 0;                 ! How many times has the cereal paste been used?
 
 ! Scoring
-Global score = 0;                      ! Current player score
+! Note: 'score' is already defined in the library, so we don't declare it here
 
 ! F-R-O-B puzzle state - tracks which letters are showing on the four panels
 Global panel1_letter = 'A';
@@ -351,120 +351,93 @@ Object Valve_Platform "Valve Platform"
 ! SECTION 8: OBJECT DEFINITIONS
 ! ============================================
 !
-! Objects are items the player can interact with. They use similar syntax
-! to rooms but have different properties:
-!
-!   Object -> "object name"
-!       with name 'word1' 'word2' 'word3',  ! Parser vocabulary
-!       description "Description text",
-!       initial "in RoomName",              ! Starting location
-!       has property1 property2;            ! Object properties
+! Objects are items the player can interact with. To place an object in a room,
+! use the syntax: Object objname "display name" ParentRoom
 !
 ! Properties:
 !   - name: Words the parser recognizes (player can type these)
 !   - description: Text shown when examining the object
-!   - initial: Where the object starts (room, container, or "on player")
+!   - initial: Text shown when object is first seen (NOT location!)
 !   - has scenery: Object can't be taken (part of the scenery)
 !   - has container: Object can hold other objects
 !   - has openable: Object can be opened/closed
 !   - has open: Object starts open
 !   - has light: Object provides light
 !   - capacity N: Container can hold N objects
-!
-! The "->" syntax means "create a new object" (vs reusing an existing class)
 
 ! Scenery objects - can't be taken, just part of the environment
-Object -> "rental hover-mule"
-    ! Vocabulary: player can refer to it as "hover-mule", "mule", "rental", or "hover"
+! Syntax: Object identifier "display name" ParentLocation
+Object hover_mule "rental hover-mule" Prairie_Overlook
     with name 'hover-mule' 'mule' 'rental' 'hover',
     description "A rental hover-mule in questionable condition, half-inflated and sagging to one side.",
-    initial "in Prairie_Overlook",  ! Starts in the starting room
-    has scenery;  ! Can't be taken - it's scenery
+    has scenery;
 
-Object -> "photo-chromatic visor"
-    with name 'visor' 'photo-chromatic' 'visor',
+Object visor "photo-chromatic visor" Prairie_Overlook
+    with name 'visor' 'photo-chromatic',
     description "A cheap photo-chromatic visor clipped over the hover-mule's air valve.",
-    initial "in Prairie_Overlook",
-    has scenery;  ! Also scenery
+    has scenery;
 
 ! Hand-dryer - demonstrates custom behavior with "before" routine
-Object -> "FrobozzCo Breeze-Matic hand-dryer"
+Object Hand_Dryer "FrobozzCo Breeze-Matic hand-dryer" Gift_Kiosk
     with name 'hand-dryer' 'dryer' 'breeze-matic' 'blower',
     description "A wall-mounted FrobozzCo Breeze-Matic hand-dryer. It's still warm to the touch.",
-    initial "in Gift_Kiosk",
-    ! "before" routine intercepts actions before they happen
-    ! This allows custom behavior for specific actions
     before [;
-        ! "Take" is the action when player types "take dryer"
         Take: "It's bolted to the wall. You'll need to yank it free.";
-        ! Note: We'll need a custom YANK verb to actually remove it
-    ];
+    ],
+    has scenery;
 
 ! Mailbox - a container that can hold objects
-Object -> "mailbox"
+Object mailbox "mailbox" Mailbox_Approach
     with name 'mailbox',
     description "A mailbox stuffed with fossil circulars.",
-    initial "in Mailbox_Approach",
-    capacity 10,        ! Can hold up to 10 objects
-    has container open;  ! Is a container and starts open
+    capacity 10,
+    has container open scenery;
 
 ! Icebox - a container that can be opened/closed
-Object -> "unplugged icebox"
+Object icebox "unplugged icebox" Kitchen
     with name 'icebox' 'ice-box' 'refrigerator' 'fridge',
     description "An unplugged icebox standing in the corner.",
-    initial "in Kitchen",
     capacity 5,
-    has container openable;  ! Can be opened/closed (not open by default)
+    has container openable scenery;
 
-! Ice-cube key - starts inside the icebox
-Object -> "ice-cube key"
+! Ice-cube key - starts inside the icebox (nested object)
+Object ice_key "ice-cube key" icebox
     with name 'key' 'ice-cube' 'ice-cube-key',
-    description "A key frozen in an ice cube.",
-    initial "in unplugged icebox";  ! Starts inside the icebox container
+    description "A key frozen in an ice cube.";
 
 ! Journal - a readable object
-Object -> "GUE-journal paper"
+Object journal "GUE-journal paper" Living_Room_Alcove
     with name 'journal' 'paper' 'gue-journal' 'academic' 'editorial',
-    description "A yellowed academic journal open to a furious editorial about the Great Underground Empire being dismissed as marketing fiction.",
-    initial "in Living_Room_Alcove";
+    description "A yellowed academic journal open to a furious editorial about the Great Underground Empire being dismissed as marketing fiction.";
 
 ! Lamp - a light source with dynamic description
-Object -> "LED Frob-Lux lamp"
+Object lamp "LED Frob-Lux lamp" Cellar_Landing
     with name 'lamp' 'led' 'light' 'flashlight' 'frob-lux',
-    ! Dynamic description that shows remaining battery
     description [;
-        ! This routine prints the description with the current battery level
-        "An LED Frob-Lux lamp with ", lamp_turns, " turns of battery life remaining.";
+        print "An LED Frob-Lux lamp with ", lamp_turns, " turns of battery life remaining.";
     ],
-    initial "in Cellar_Landing",
-    has light;  ! Provides light (allows player to see in dark rooms)
+    has light;
 
 ! Debt collection letter - blocks the lever
-Object -> debt_collection_letter "debt-collection letter"
-    ! Note: We give it a variable name (debt_collection_letter) so we can
-    ! reference it in code (like checking if it's in a room)
+Object debt_collection_letter "debt-collection letter" Rusted_Grating
     with name 'letter' 'debt-collection' 'debt' 'paper',
-    description "A debt-collection letter wadded into the lever mechanism. The compound interest number is 847,293,201.",
-    initial "in Rusted_Grating";
+    description "A debt-collection letter wadded into the lever mechanism. The compound interest number is 847,293,201.";
 
 ! Lever - demonstrates conditional behavior based on other objects
-Object -> lever "lever"
+Object lever "lever" Rusted_Grating
     with name 'lever',
     description "A lever on the far side of the grating, currently jammed by a debt-collection letter.",
-    initial "in Rusted_Grating",
     before [;
-        ! "Pull" is the action when player types "pull lever"
         Pull: 
-            ! Check if the letter is still in the room (blocking the lever)
             if (debt_collection_letter in Rusted_Grating) {
                 "The lever won't move. The paper is blocking it.";
             } else {
-                ! If letter is removed, allow lever to work
-                grating_opened = true;      ! Set puzzle state
-                score = score + 10;         ! Award points
+                grating_opened = true;
+                score = score + 10;
                 "The grating swings open with a rusty scream.";
             }
-    ];
+    ],
+    has scenery;
 
 ! ============================================
 ! SECTION 9: CUSTOM ACTION ROUTINES
@@ -478,24 +451,26 @@ Object -> lever "lever"
 ! Return true to indicate the action was handled, false to let library handle it.
 
 ! UseSub - handles the "use" action (when player types "use object")
-[ UseSub obj;
-    ! Check if the object being used is the hand-dryer
-    if (obj == "FrobozzCo Breeze-Matic hand-dryer") {
-        ! Check if we're in the Front Hall and it hasn't been cleaned yet
-        if (location == Front_Hall && ~front_hall_cleaned) {
-            ! Set the state variable
-            front_hall_cleaned = true;
-            ! Award points
-            score = score + 20;
-            ! Print success message
-            "The dryer blasts away all dust and cobwebs with industrial force. The hall is now blindingly, oppressively white. Everything gleams with antiseptic perfection.";
-            ! Return true to indicate we handled this action
-            return true;
-        }
-    }
-    ! Return false to let the library handle other "use" actions
-    return false;
-];
+! Note: Temporarily disabled to debug memory errors
+! [ UseSub obj;
+!     ! Check if the object being used is the hand-dryer
+!     ! In Inform 6, obj is an object number, so we compare to the object identifier
+!     if (obj == Hand_Dryer) {
+!         ! Check if we're in the Front Hall and it hasn't been cleaned yet
+!         if (location == Front_Hall && ~front_hall_cleaned) {
+!             ! Set the state variable
+!             front_hall_cleaned = true;
+!             ! Award points
+!             score = score + 20;
+!             ! Print success message
+!             "The dryer blasts away all dust and cobwebs with industrial force. The hall is now blindingly, oppressively white. Everything gleams with antiseptic perfection.";
+!             ! Return true to indicate we handled this action
+!             return true;
+!         }
+!     }
+!     ! Return false to let the library handle other "use" actions
+!     return false;
+! ];
 
 ! ============================================
 ! END OF SOURCE FILE
@@ -514,3 +489,27 @@ Object -> lever "lever"
 ! - INFORM6_COMPILATION_GUIDE.md - How to compile
 ! - FROBSWANE_Complete_Design.md - Full game design
 ! - walkthrough.md - Complete playthrough guide
+
+! ============================================
+! SECTION 10: GRAMMAR DEFINITIONS
+! ============================================
+!
+! The grammar.h file MUST be included at the end of the source file.
+! It defines all standard verbs and their synonyms:
+!   - LOOK (L) - examine your surroundings
+!   - EXAMINE (X) - look at something closely
+!   - TAKE (GET) - pick up an object
+!   - DROP - put down an object
+!   - INVENTORY (I) - list what you're carrying
+!   - GO (N, S, E, W, etc.) - move in a direction
+!   - OPEN, CLOSE, PUSH, PULL, etc.
+!
+! Standard Infocom shortcuts are included:
+!   L = LOOK
+!   X = EXAMINE
+!   I = INVENTORY
+!   Z = WAIT
+!   G = AGAIN (repeat last command)
+!
+! This include MUST come AFTER all object and room definitions.
+Include "grammar";

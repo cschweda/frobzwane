@@ -7,6 +7,7 @@ This directory contains all project documentation except the main README.md in t
 ### Getting Started
 - **[QUICK_START.md](QUICK_START.md)** - Quick reference for players and developers
 - **[RUNTIME_INSTRUCTIONS.md](RUNTIME_INSTRUCTIONS.md)** - Detailed guide for running the game on Ubuntu/Debian
+- **[TESTING.md](TESTING.md)** - Complete guide to automated testing
 
 ### Compilation & Setup
 - **[INFORM6_COMPILATION_GUIDE.md](INFORM6_COMPILATION_GUIDE.md)** - Complete guide to compiling Inform 6 games
@@ -28,6 +29,7 @@ This directory contains all project documentation except the main README.md in t
 
 **For Developers:**
 - Start with [INFORM6_COMPILATION_GUIDE.md](INFORM6_COMPILATION_GUIDE.md)
+- See [TESTING.md](TESTING.md) for automated testing
 - See [IMPLEMENTATION_ASSESSMENT.md](IMPLEMENTATION_ASSESSMENT.md) for current status
 - Use [IMPLEMENTATION_CHECKLIST.md](IMPLEMENTATION_CHECKLIST.md) for development tracking
 
@@ -43,6 +45,12 @@ This directory contains all project documentation except the main README.md in t
 - Update walkthrough.md as new features are implemented
 - Update IMPLEMENTATION_ASSESSMENT.md as progress is made
 
+### Troubleshooting
+- **[RUNTIME_BUG_REPORT.md](RUNTIME_BUG_REPORT.md)** - Known issues and resolutions
+
+### Project Policies
+- **[DOCUMENTATION_POLICY.md](DOCUMENTATION_POLICY.md)** - Documentation guidelines
+
 ## File Organization
 
 ```
@@ -50,11 +58,14 @@ docs/
 ├── README.md (this file)
 ├── QUICK_START.md
 ├── RUNTIME_INSTRUCTIONS.md
+├── TESTING.md                    # Automated testing guide
 ├── INFORM6_COMPILATION_GUIDE.md
 ├── LIBRARY_SETUP.md
 ├── COMPILATION_VERIFICATION.md
 ├── COMPILATION_NOTES.md
 ├── SETUP_COMPLETE.md
+├── RUNTIME_BUG_REPORT.md
+├── DOCUMENTATION_POLICY.md
 ├── FROBSWANE_Complete_Design.md
 ├── walkthrough.md
 ├── IMPLEMENTATION_ASSESSMENT.md
@@ -63,7 +74,9 @@ docs/
 
 ---
 
-**Last Updated**: 2024-11-30  
+**Last Updated**: 2025-11-30  
 **Project**: FROBSWANE: A Post-Underground Excavation  
-**Status**: Early Development (12 rooms implemented)
+**Status**: Early Development (12 rooms implemented)  
+**Compiler**: Inform 6.42 (stable)  
+**Library**: Inform 6 Library 6.12.6 (stable)
 

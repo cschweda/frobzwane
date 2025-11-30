@@ -28,3 +28,6 @@
 # Keep docs directory
 !docs/
 !docs/**/*
+
+# Test results (generated)
+test-results.txt

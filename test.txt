@@ -1,0 +1,72 @@
+# FROBSWANE Test Script
+# One command per line. Lines starting with # are comments.
+# This file can be piped directly to frotz/dfrotz
+
+# Starting location - Prairie Overlook
+l
+x mule
+x visor
+i
+
+# Go east to Tarpit Parking Lot
+e
+l
+
+# Go east to Gift Kiosk
+e
+l
+x dryer
+take dryer
+
+# Go south to Mailbox Approach
+s
+l
+x mailbox
+
+# Enter White House (Front Hall)
+in
+l
+
+# Go west to Kitchen
+w
+l
+x icebox
+open icebox
+look in icebox
+take key
+i
+
+# Go back east to Front Hall
+e
+
+# Go east to Living Room Alcove
+e
+l
+x journal
+take journal
+
+# Go back to Front Hall
+w
+
+# Go down to Cellar Landing
+d
+l
+x lamp
+take lamp
+i
+
+# Go north to Rusted Grating
+n
+l
+x lever
+x letter
+take letter
+pull lever
+
+# Check score
+score
+
+# Quit
+q
+y
+

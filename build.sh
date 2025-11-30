@@ -31,20 +31,47 @@ elif [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
 fi
 
 # Find Inform 6 compiler
-# Check multiple methods: PATH, aliases (via shell config), common locations
+# Check multiple methods: preferred locations first, then PATH/aliases
 INFORM_CMD=""
 INFORM_FOUND=false
 
-# Method 1: Try to find 'inform' in PATH
-if command -v inform &> /dev/null; then
+# Method 1: Check preferred/stable installation locations FIRST
+# This ensures we use stable versions (like inform642) over development versions
+PREFERRED_PATHS=(
+    # User's custom Inform 6 location (stable 6.42 first)
+    "$HOME/infocom/Inform6/inform642"
+    # Standard system locations
+    "/usr/local/bin/inform"
+    "/usr/bin/inform"
+    "$HOME/bin/inform"
+    "$HOME/inform/inform"
+    "$HOME/inform/Inform6/inform"
+    "/opt/inform/inform"
+    "/opt/inform/Inform6/inform"
+    "/usr/local/games/inform"
+)
+
+for path in "${PREFERRED_PATHS[@]}"; do
+    if [ -f "$path" ] && [ -x "$path" ]; then
+        # Test if it's actually Inform 6
+        if "$path" -v 2>&1 | head -1 | grep -q "Inform 6"; then
+            INFORM_CMD="$path"
+            INFORM_FOUND=true
+            break
+        fi
+    fi
+done
+
+# Method 2: Try to find 'inform' in PATH (might be alias or symlink)
+if [ "$INFORM_FOUND" = false ] && command -v inform &> /dev/null; then
     INFORM_CMD=$(command -v inform)
     # Test if it works
-    if "$INFORM_CMD" -v &> /dev/null 2>&1 || "$INFORM_CMD" --version &> /dev/null 2>&1; then
+    if "$INFORM_CMD" -v 2>&1 | head -1 | grep -q "Inform 6"; then
         INFORM_FOUND=true
     fi
 fi
 
-# Method 2: Check for alias in shell config files (bash/zsh)
+# Method 3: Check for alias in shell config files (bash/zsh)
 if [ "$INFORM_FOUND" = false ] && [ -n "$HOME" ]; then
     # Check common shell config files for alias definitions
     CONFIG_FILES=(
@@ -64,7 +91,7 @@ if [ "$INFORM_FOUND" = false ] && [ -n "$HOME" ]; then
                 alias_path=$(echo "$alias_line" | sed -E "s/.*alias[[:space:]]+inform=['\"]([^'\"]+)['\"].*/\1/" | awk '{print $1}')
                 # Test if the path exists and works
                 if [ -n "$alias_path" ] && [ -f "$alias_path" ] && [ -x "$alias_path" ]; then
-                    if "$alias_path" -v &> /dev/null 2>&1 || "$alias_path" --version &> /dev/null 2>&1; then
+                    if "$alias_path" -v 2>&1 | head -1 | grep -q "Inform 6"; then
                         INFORM_CMD="$alias_path"
                         INFORM_FOUND=true
                         break
@@ -75,15 +102,11 @@ if [ "$INFORM_FOUND" = false ] && [ -n "$HOME" ]; then
     done
 fi
 
-# Method 3: Check common installation locations
+# Method 4: Check additional common installation locations
 if [ "$INFORM_FOUND" = false ]; then
     COMMON_PATHS=(
-        "/usr/local/bin/inform"
-        "/usr/bin/inform"
-        "$HOME/inform/inform"
-        "$HOME/inform/Inform6/inform"
-        "/opt/inform/inform"
-        "/opt/inform/Inform6/inform"
+        # User's Inform 6 directory (development version as fallback)
+        "$HOME/infocom/Inform6/inform"
     )
     
     for path in "${COMMON_PATHS[@]}"; do
@@ -185,6 +208,14 @@ if [ $? -eq 0 ]; then
         FILE_TYPE=$(file "$OUTPUT_FILE" 2>/dev/null)
         echo "File type: $FILE_TYPE"
         echo ""
+        
+        # Sync to parchment folder if it exists
+        PARCHMENT_DIR="$SCRIPT_DIR/parchment"
+        if [ -d "$PARCHMENT_DIR" ]; then
+            cp "$SCRIPT_DIR/$OUTPUT_FILE" "$PARCHMENT_DIR/"
+            echo "✓ Synced $OUTPUT_FILE to parchment/ folder"
+            echo ""
+        fi
         
         # Check for frotz interpreter
         FROTZ_CMD=$(which frotz 2>/dev/null || which /usr/games/frotz 2>/dev/null)

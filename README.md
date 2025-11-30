@@ -346,6 +346,10 @@ frobzwane/
 ├── README.md                    # This file
 ├── frobzwane.inf                # Main source file (heavily commented)
 ├── build.sh                     # Build script
+├── runtest.sh                   # Test runner script
+├── generatetest.sh              # Test generator script
+├── test.txt                     # Default test commands (42 commands)
+├── test-results.txt             # Test output transcript (auto-generated)
 ├── .gitignore                   # Git ignore rules
 ├── lib/                         # Inform 6 library (self-contained)
 │   └── inform6lib/
@@ -355,11 +359,15 @@ frobzwane/
 │       ├── english.h
 │       └── ... (other library files)
 ├── docs/                        # Documentation directory
+│   ├── TESTING.md               # Testing guide
 │   ├── walkthrough.md           # Complete playthrough guide
 │   ├── FROBSWANE_Complete_Design.md
 │   ├── INFORM6_COMPILATION_GUIDE.md
 │   ├── RUNTIME_INSTRUCTIONS.md
 │   └── ... (other documentation)
+├── parchment/                   # Web version (created by build.sh --web)
+│   ├── index.html
+│   └── frobzwane.z5
 └── frobzwane.z5                 # Compiled game (generated)
 ```
 
@@ -383,6 +391,7 @@ See `IMPLEMENTATION_ASSESSMENT.md` for detailed status.
 All documentation is in the `docs/` directory:
 
 - **README.md** (this file) - Quick start, compilation, and runtime
+- **docs/TESTING.md** - Complete guide to automated testing
 - **docs/walkthrough.md** - Complete playthrough with every command and parser response
 - **docs/RUNTIME_INSTRUCTIONS.md** - Detailed guide for running the game
 - **docs/QUICK_START.md** - Quick reference for players and developers
@@ -405,13 +414,14 @@ This project uses Inform 6 (not Inform 7). The source file is `frobzwane.inf`.
 - `frobzwane.inf` - Main source code (heavily commented for learning)
 - `lib/inform6lib/` - Inform 6 library (included, self-contained)
 - `walkthrough.md` - Complete playthrough guide (updated as game expands)
+- `test.txt` - Automated test commands
 
 **Compiling:**
 ```bash
 ./build.sh
 ```
 
-**Testing:**
+**Manual Testing:**
 ```bash
 # Install interpreter if needed (Ubuntu/Debian)
 sudo apt-get install frotz
@@ -426,8 +436,110 @@ See **RUNTIME_INSTRUCTIONS.md** for detailed runtime setup and troubleshooting.
 
 1. Edit `frobzwane.inf`
 2. Compile: `./build.sh`
-3. Test: `frotz frobzwane.z5`
-4. Repeat
+3. Run automated tests: `./runtest.sh`
+4. Manual test: `frotz frobzwane.z5`
+5. Repeat
+
+## 🧪 Automated Testing
+
+The project includes scripts for automated testing:
+
+### Running Tests
+
+```bash
+# Run default test (test.txt with 42 commands)
+./runtest.sh
+
+# Run with full game output
+./runtest.sh --verbose
+
+# Run custom test file
+./runtest.sh mytest.txt
+```
+
+**Example output:**
+```
+==========================================
+FROBSWANE Test Runner
+==========================================
+
+Test file: test.txt
+Commands: 42
+Game: frobzwane.z5
+Interpreter: dfrotz
+
+==========================================
+Running test...
+==========================================
+
+Last output:
+---
+You have so far scored 0 out of a possible 0, in 33 turns
+> q
+Are you sure you want to quit?
+---
+
+==========================================
+✓ Test completed without critical errors
+==========================================
+
+Full results saved to: test-results.txt
+```
+
+**Test Results:** Every test run saves a complete transcript to `test-results.txt`, showing all commands and parser responses.
+
+### Generating Tests
+
+```bash
+# Interactive mode - enter commands one at a time
+./generatetest.sh
+
+# Create a new test file
+./generatetest.sh mytest.txt
+
+# Record a live play session
+./generatetest.sh --record
+```
+
+**Interactive example:**
+```
+Enter commands (type 'done' when finished):
+
+> l
+> x mule
+> e
+> take lamp
+> done
+
+✓ Test file created: mytest.txt
+Commands: 4
+```
+
+### Test File Format
+
+Test files are simple text with one command per line:
+
+```
+# Comments start with #
+l
+x mule
+e
+take lamp
+q
+y
+```
+
+### Regression Testing
+
+Before committing changes, run:
+
+```bash
+./build.sh && ./runtest.sh
+```
+
+This ensures the game compiles and basic functionality works.
+
+See **docs/TESTING.md** for complete testing documentation
 
 ## 🐛 Troubleshooting
 
@@ -478,8 +590,8 @@ See **RUNTIME_INSTRUCTIONS.md** for detailed runtime setup and troubleshooting.
 ## 🙏 Credits
 
 - **Design**: Based on FROBSWANE Complete Design Document
-- **Compiler**: Inform 6.45 (in development)
-- **Library**: Inform 6 Library 6.12.7
+- **Compiler**: Inform 6.42 (stable)
+- **Library**: Inform 6 Library 6.12.6 (stable)
 
 ## 🔗 Resources
 
